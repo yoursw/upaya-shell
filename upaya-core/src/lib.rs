@@ -5,6 +5,28 @@
 use std::path::PathBuf;
 use thiserror::Error;
 use serde::{Serialize, Deserialize};
+use ratatui::{
+    layout::Rect,
+    Frame,
+};
+use crossterm::event::Event;
+
+/// Input events that can be handled by plugins
+#[derive(Debug, Clone)]
+pub enum InputEvent {
+    /// A regular character input
+    Char(char),
+    /// Left arrow key
+    Left,
+    /// Right arrow key
+    Right,
+    /// Backspace key
+    Backspace,
+    /// Enter key
+    Enter,
+    /// Escape key
+    Escape,
+}
 
 /// Result type for Upaya operations
 pub type Result<T> = std::result::Result<T, UpayaError>;
@@ -71,6 +93,12 @@ pub trait UpayaPlugin: Send + Sync {
 
     /// Cleanup resources
     fn cleanup(&mut self) -> Result<()>;
+
+    /// Render the plugin's UI
+    fn render(&self, f: &mut Frame, area: Rect) -> Result<()>;
+
+    /// Handle terminal events
+    fn handle_event(&self, event: &Event) -> Result<bool>;
 }
 
 /// Plugin loader trait

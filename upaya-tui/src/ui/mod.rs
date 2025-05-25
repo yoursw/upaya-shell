@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
-use crate::app::{App, Tab};
+use crate::app::{App, Tab, PluginViewState};
 
 /// Render the TUI interface
 pub fn render(f: &mut Frame, app: &App) {
@@ -114,23 +114,43 @@ fn render_plugins_tab(
 }
 
 fn render_plugin_view(f: &mut Frame, metadata: &upaya_core::PluginMetadata, app: &App, area: Rect) {
-    let view = vec![
-        Line::from(format!("Plugin: {}", metadata.name)),
-        Line::from(format!("Version: {}", metadata.version)),
-        Line::from("Press Enter to execute"),
-        Line::from(""),
-        Line::from("Output:"),
-        Line::from("------"),
-        Line::from(if !app.plugin_output.is_empty() {
-            app.plugin_output.as_str()
-        } else {
-            "No output yet"
-        }),
-    ];
+    match app.plugin_view_state {
+        PluginViewState::List => {
+            // This state is handled in render_plugins_tab
+        }
+        PluginViewState::Details => {
+            let view = vec![
+                Line::from(format!("Plugin: {}", metadata.name)),
+                Line::from(format!("Version: {}", metadata.version)),
+                Line::from(format!("Description: {}", metadata.description)),
+                Line::from(format!("Author: {}", metadata.author)),
+                Line::from(""),
+                Line::from("Permissions:"),
+                Line::from(format!("  Filesystem: {}", metadata.permissions.filesystem)),
+                Line::from(format!("  Network: {}", metadata.permissions.network)),
+                Line::from(format!("  System: {}", metadata.permissions.system)),
+                Line::from(""),
+                Line::from("Press Enter to open plugin"),
+                Line::from("Press Esc to go back"),
+            ];
 
-    let view = Paragraph::new(view)
-        .block(Block::default().title("Plugin View").borders(Borders::ALL));
-    f.render_widget(view, area);
+            let view = Paragraph::new(view)
+                .block(Block::default().title("Plugin Details").borders(Borders::ALL));
+            f.render_widget(view, area);
+        }
+        PluginViewState::Input | PluginViewState::Output => {
+            if let Some(idx) = app.selected_plugin {
+                if let Some((_, plugin)) = app.plugins.get(idx) {
+                    if let Err(e) = plugin.render(f, area) {
+                        let error = format!("Error rendering plugin: {}", e);
+                        let error_view = Paragraph::new(error)
+                            .block(Block::default().borders(Borders::ALL));
+                        f.render_widget(error_view, area);
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn render_settings_tab(

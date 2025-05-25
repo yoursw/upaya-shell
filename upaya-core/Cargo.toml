@@ -17,3 +17,5 @@ wasmtime.workspace = true
 git2.workspace = true
 reqwest.workspace = true
 tracing.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
