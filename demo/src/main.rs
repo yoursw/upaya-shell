@@ -14,6 +14,7 @@ use upaya_core::{Result, UpayaPlugin};
 use upaya_plugin::DefaultPluginLoader;
 use upaya_demo::ExamplePlugin;
 use upaya_tui::{app, event, ui};
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -30,7 +31,8 @@ async fn main() -> Result<()> {
     // Initialize plugin loader
     let _loader = DefaultPluginLoader::new();
     let example_plugin = ExamplePlugin::new();
-    app.update_plugins(vec![example_plugin.metadata()]);
+    app.add_message("Example plugin loaded".to_string());
+    app.update_plugins(vec![(example_plugin.metadata(), Arc::new(example_plugin))]);
 
     // Run the application
     let mut reader = EventStream::new();

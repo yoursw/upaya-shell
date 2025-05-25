@@ -18,17 +18,11 @@ pub enum UpayaError {
     #[error("Plugin error: {0}")]
     Plugin(String),
 
-    #[error("WASM error: {0}")]
-    Wasm(String),
-
     #[error("Git error: {0}")]
     Git(#[from] git2::Error),
 
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
-
-    #[error("Serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
 }
 
 /// Plugin metadata
@@ -73,7 +67,7 @@ pub trait UpayaPlugin: Send + Sync {
     fn init(&mut self) -> Result<()>;
 
     /// Execute the plugin
-    fn execute(&self, args: &[String]) -> Result<()>;
+    fn execute(&self, args: &[String]) -> Result<String>;
 
     /// Cleanup resources
     fn cleanup(&mut self) -> Result<()>;

@@ -1,7 +1,7 @@
 //! Event handling
 
 use crossterm::event::{Event, KeyCode};
-use upaya_core::Result;
+use upaya_core::{Result, UpayaPlugin};
 use crate::app::App;
 
 /// Handle terminal events
@@ -29,18 +29,30 @@ pub fn handle_event(event: Event, app: &mut App) -> Result<()> {
             KeyCode::Enter => {
                 match app.current_tab {
                     crate::app::Tab::Load => {
-                        app.add_message(format!("Loading from: {}", app.input));
+                        app.add_debug(format!("Loading from: {}", app.input));
                         app.input.clear();
                     }
                     crate::app::Tab::Plugins => {
                         if let Some(idx) = app.selected_plugin {
-                            if let Some(plugin) = app.plugins.get(idx) {
-                                app.add_message(format!("Selected plugin: {}", plugin.name));
+                            // Get plugin info first
+                            let plugin_info = app.plugins.get(idx).map(|(metadata, plugin)| {
+                                (metadata.name.clone(), plugin.clone())
+                            });
+                            
+                            // Then use the info
+                            if let Some((name, plugin)) = plugin_info {
+                                app.add_debug(format!("Executing plugin: {}", name));
+                                app.clear_plugin_output();
+                                let args: Vec<String> = vec![];
+                                match plugin.execute(&args) {
+                                    Ok(output) => app.add_plugin_output(output),
+                                    Err(e) => app.add_plugin_output(format!("Error: {}", e)),
+                                }
                             }
                         }
                     }
                     crate::app::Tab::Settings => {
-                        app.add_message("Settings updated".to_string());
+                        app.add_debug("Settings updated".to_string());
                     }
                 }
             }

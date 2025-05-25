@@ -19,6 +19,7 @@ pub fn render(f: &mut Frame, app: &App) {
             Constraint::Length(3),  // Title
             Constraint::Min(0),     // Main content
             Constraint::Length(3),  // Input area
+            Constraint::Length(10), // Debug console
         ])
         .split(f.size());
 
@@ -49,6 +50,9 @@ pub fn render(f: &mut Frame, app: &App) {
 
     // Render input area
     render_input(f, app, chunks[2]);
+
+    // Render debug console
+    render_debug_console(f, app, chunks[3]);
 }
 
 fn render_tabs(f: &mut Frame, app: &App, area: Rect) {
@@ -84,23 +88,60 @@ fn render_plugins_tab(
     app: &App,
     area: Rect,
 ) {
+    // Split the area into two parts: plugin list and plugin view
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(30),
+            Constraint::Percentage(70),
+        ])
+        .split(area);
+
+    // Render plugin list
     let items: Vec<ListItem> = app.plugins
         .iter()
         .enumerate()
-        .map(|(i, plugin)| {
+        .map(|(i, (metadata, _))| {
             let style = if Some(i) == app.selected_plugin {
                 Style::default().fg(Color::Yellow)
             } else {
                 Style::default()
             };
-            ListItem::new(format!("{} - {}", plugin.name, plugin.version))
+            ListItem::new(format!("{} - {}", metadata.name, metadata.version))
                 .style(style)
         })
         .collect();
 
     let list = List::new(items)
         .block(Block::default().title("Plugins").borders(Borders::ALL));
-    f.render_widget(list, area);
+    f.render_widget(list, chunks[0]);
+
+    // If a plugin is selected, render its view
+    if let Some(idx) = app.selected_plugin {
+        if let Some((metadata, _)) = app.plugins.get(idx) {
+            render_plugin_view(f, metadata, app, chunks[1]);
+        }
+    }
+}
+
+fn render_plugin_view(f: &mut Frame, metadata: &upaya_core::PluginMetadata, app: &App, area: Rect) {
+    let view = vec![
+        Line::from(format!("Plugin: {}", metadata.name)),
+        Line::from(format!("Version: {}", metadata.version)),
+        Line::from("Press Enter to execute"),
+        Line::from(""),
+        Line::from("Output:"),
+        Line::from("------"),
+        Line::from(if !app.plugin_output.is_empty() {
+            app.plugin_output.as_str()
+        } else {
+            "No output yet"
+        }),
+    ];
+
+    let view = Paragraph::new(view)
+        .block(Block::default().title("Plugin View").borders(Borders::ALL));
+    f.render_widget(view, area);
 }
 
 fn render_load_tab(
@@ -147,4 +188,16 @@ fn render_input(f: &mut Frame, app: &App, area: Rect) {
         .style(Style::default())
         .block(Block::default().borders(Borders::ALL).title("Input"));
     f.render_widget(input, area);
+}
+
+fn render_debug_console(f: &mut Frame, app: &App, area: Rect) {
+    let debug_lines: Vec<Line> = app.debug_output
+        .iter()
+        .map(|line| Line::from(line.as_str()))
+        .collect();
+
+    let debug = Paragraph::new(debug_lines)
+        .block(Block::default().title("Debug Console").borders(Borders::ALL))
+        .style(Style::default().fg(Color::Gray));
+    f.render_widget(debug, area);
 } 

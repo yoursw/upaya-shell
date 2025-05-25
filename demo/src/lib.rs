@@ -34,17 +34,14 @@ impl UpayaPlugin for ExamplePlugin {
     }
 
     fn init(&mut self) -> Result<()> {
-        println!("Example plugin initialized");
         Ok(())
     }
 
-    fn execute(&self, args: &[String]) -> Result<()> {
-        println!("Example plugin executed with args: {:?}", args);
-        Ok(())
+    fn execute(&self, args: &[String]) -> Result<String> {
+        Ok(format!("Example plugin executed with args: {:?}", args))
     }
 
     fn cleanup(&mut self) -> Result<()> {
-        println!("Example plugin cleaned up");
         Ok(())
     }
 } 

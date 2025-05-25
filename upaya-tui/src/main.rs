@@ -2,8 +2,9 @@ mod app;
 mod event;
 mod ui;
 
-use std::{io, panic};
+use std::io;
 use std::time::Duration;
+use std::sync::{Arc, Mutex};
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream},
     execute,
@@ -16,10 +17,12 @@ use ratatui::{
 };
 use upaya_core::Result;
 use upaya_plugin::DefaultPluginLoader;
-use upaya_tui::{run_app};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Create application state
+    let app = Arc::new(Mutex::new(app::App::new()));
+
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -27,20 +30,13 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // Create application state
-    let mut app = app::App::new();
-
-    // Initialize plugin loader
-    let loader = DefaultPluginLoader::new();
-    
     // Load example plugin
     let example_plugin = upaya_demo::ExamplePlugin::new();
-    app.add_message("Example plugin loaded".to_string());
+    if let Ok(mut app) = app.lock() {
+        app.update_plugins(vec![(example_plugin.metadata(), Arc::new(example_plugin))]);
+    }
 
-    // Update plugin list
-    app.update_plugins(vec![example_plugin.metadata()]);
-
-    // Create app and run it
+    // Run the app
     let res = run_app(&mut terminal, app).await;
 
     // Restore terminal
@@ -53,7 +49,7 @@ async fn main() -> Result<()> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        println!("{:?}", err);
+        eprintln!("{:?}", err);
     }
 
     Ok(())
@@ -61,11 +57,15 @@ async fn main() -> Result<()> {
 
 async fn run_app<B: ratatui::backend::Backend>(
     terminal: &mut Terminal<B>,
-    mut app: app::App,
+    app: Arc<Mutex<app::App>>,
 ) -> Result<()> {
     let mut reader = EventStream::new();
     loop {
-        terminal.draw(|f| ui::render(f, &app))?;
+        terminal.draw(|f| {
+            if let Ok(app) = app.lock() {
+                ui::render(f, &app);
+            }
+        })?;
 
         let timeout = Duration::from_millis(200);
         if crossterm::event::poll(timeout)? {
@@ -75,7 +75,9 @@ async fn run_app<B: ratatui::backend::Backend>(
                         return Ok(());
                     }
                 }
-                event::handle_event(event, &mut app)?;
+                if let Ok(mut app) = app.lock() {
+                    event::handle_event(event, &mut app)?;
+                }
             }
         }
     }

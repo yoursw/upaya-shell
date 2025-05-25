@@ -1,6 +1,7 @@
 //! Application state management
 
-use upaya_core::{Result, PluginMetadata};
+use upaya_core::{Result, PluginMetadata, UpayaPlugin};
+use std::sync::Arc;
 
 /// Available tabs
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -30,13 +31,15 @@ pub enum MenuAction {
 
 /// Application state
 pub struct App {
-    pub plugins: Vec<PluginMetadata>,
+    pub plugins: Vec<(PluginMetadata, Arc<dyn UpayaPlugin>)>,
     pub selected_plugin: Option<usize>,
-    pub input: String,
-    pub messages: Vec<String>,
     pub current_tab: Tab,
+    pub plugin_output: String,
+    pub debug_output: Vec<String>,
     pub menu_items: Vec<MenuItem>,
     pub selected_menu: Option<usize>,
+    pub input: String,
+    pub messages: Vec<String>,
 }
 
 impl App {
@@ -45,46 +48,40 @@ impl App {
         Self {
             plugins: Vec::new(),
             selected_plugin: None,
+            current_tab: Tab::Plugins,
+            plugin_output: String::new(),
+            debug_output: Vec::new(),
+            menu_items: Vec::new(),
+            selected_menu: None,
             input: String::new(),
             messages: Vec::new(),
-            current_tab: Tab::Plugins,
-            menu_items: vec![
-                MenuItem {
-                    title: "Load from Git".to_string(),
-                    description: "Load a plugin from a Git repository".to_string(),
-                    action: MenuAction::LoadGit(String::new()),
-                },
-                MenuItem {
-                    title: "Load from HTTP".to_string(),
-                    description: "Load a plugin from an HTTP URL".to_string(),
-                    action: MenuAction::LoadHttp(String::new()),
-                },
-                MenuItem {
-                    title: "Load from Local".to_string(),
-                    description: "Load a plugin from local filesystem".to_string(),
-                    action: MenuAction::LoadLocal(String::new()),
-                },
-                MenuItem {
-                    title: "Create New Plugin".to_string(),
-                    description: "Create a new plugin from template".to_string(),
-                    action: MenuAction::CreateNew,
-                },
-                MenuItem {
-                    title: "Settings".to_string(),
-                    description: "Configure Upaya Shell".to_string(),
-                    action: MenuAction::Settings,
-                },
-            ],
-            selected_menu: None,
         }
     }
 
     /// Update plugin list
-    pub fn update_plugins(&mut self, plugins: Vec<PluginMetadata>) {
+    pub fn update_plugins(&mut self, plugins: Vec<(PluginMetadata, Arc<dyn UpayaPlugin>)>) {
         self.plugins = plugins;
     }
 
-    /// Add a message to the message log
+    /// Add debug output
+    pub fn add_debug(&mut self, output: String) {
+        self.debug_output.push(output);
+        if self.debug_output.len() > 100 {
+            self.debug_output.remove(0);
+        }
+    }
+
+    /// Add plugin output
+    pub fn add_plugin_output(&mut self, output: String) {
+        self.plugin_output = output;
+    }
+
+    /// Clear plugin output
+    pub fn clear_plugin_output(&mut self) {
+        self.plugin_output.clear();
+    }
+
+    /// Add a message
     pub fn add_message(&mut self, message: String) {
         self.messages.push(message);
         if self.messages.len() > 100 {
