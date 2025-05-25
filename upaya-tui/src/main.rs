@@ -1,14 +1,34 @@
-use std::error::Error;
+mod app;
+mod event;
+mod ui;
+
+use std::{io, panic};
+use std::time::Duration;
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use futures::StreamExt;
+use ratatui::{
+    backend::CrosstermBackend,
+    Terminal,
+};
 use upaya_core::Result;
 use upaya_plugin::DefaultPluginLoader;
-use upaya_tui::{App, init_terminal, restore_terminal, run_app};
+use upaya_tui::{run_app};
 
-fn main() -> Result<()> {
-    // Initialize terminal
-    let mut terminal = init_terminal()?;
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
 
     // Create application state
-    let mut app = App::new();
+    let mut app = app::App::new();
 
     // Initialize plugin loader
     let loader = DefaultPluginLoader::new();
@@ -20,11 +40,43 @@ fn main() -> Result<()> {
     // Update plugin list
     app.update_plugins(vec![example_plugin.metadata()]);
 
-    // Run the application
-    let result = run_app(&mut terminal, app);
+    // Create app and run it
+    let res = run_app(&mut terminal, app).await;
 
     // Restore terminal
-    restore_terminal(&mut terminal)?;
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
 
-    result
+    if let Err(err) = res {
+        println!("{:?}", err);
+    }
+
+    Ok(())
+}
+
+async fn run_app<B: ratatui::backend::Backend>(
+    terminal: &mut Terminal<B>,
+    mut app: app::App,
+) -> Result<()> {
+    let mut reader = EventStream::new();
+    loop {
+        terminal.draw(|f| ui::render(f, &app))?;
+
+        let timeout = Duration::from_millis(200);
+        if crossterm::event::poll(timeout)? {
+            if let Some(Ok(event)) = reader.next().await {
+                if let Event::Key(key) = event {
+                    if key.code == crossterm::event::KeyCode::Char('q') {
+                        return Ok(());
+                    }
+                }
+                event::handle_event(event, &mut app)?;
+            }
+        }
+    }
 } 

@@ -1,35 +1,63 @@
+use std::io;
+use std::time::Duration;
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use futures::StreamExt;
+use ratatui::{
+    backend::CrosstermBackend,
+    Terminal,
+};
 use upaya_core::{Result, UpayaPlugin};
-use upaya_tui::{App, init_terminal, restore_terminal, run_app};
+use upaya_plugin::DefaultPluginLoader;
 use upaya_demo::ExamplePlugin;
+use upaya_tui::{app, event, ui};
 
-fn main() -> Result<()> {
-    // Initialize terminal
-    let mut terminal = init_terminal()?;
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
 
-    // Create application state
-    let mut app = App::new();
+    // Create app and run it
+    let mut app = app::App::new();
 
-    // Create and initialize the example plugin
-    let mut plugin = ExamplePlugin::new();
-    plugin.init()?;
-    app.add_message("Example plugin initialized".to_string());
+    // Initialize plugin loader
+    let _loader = DefaultPluginLoader::new();
+    let example_plugin = ExamplePlugin::new();
+    app.update_plugins(vec![example_plugin.metadata()]);
 
-    // Update plugin list
-    app.update_plugins(vec![plugin.metadata()]);
+    // Run the application
+    let mut reader = EventStream::new();
+    loop {
+        terminal.draw(|f| ui::render(f, &app))?;
 
-    // Execute the plugin with some example arguments
-    let args = vec!["--demo".to_string(), "test".to_string()];
-    plugin.execute(&args)?;
-    app.add_message(format!("Example plugin executed with args: {:?}", args));
-
-    // Run the TUI application
-    let result = run_app(&mut terminal, app);
-
-    // Cleanup
-    plugin.cleanup()?;
+        let timeout = Duration::from_millis(200);
+        if crossterm::event::poll(timeout)? {
+            if let Some(Ok(event)) = reader.next().await {
+                if let Event::Key(key) = event {
+                    if key.code == crossterm::event::KeyCode::Char('q') {
+                        break;
+                    }
+                }
+                event::handle_event(event, &mut app)?;
+            }
+        }
+    }
 
     // Restore terminal
-    restore_terminal(&mut terminal)?;
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
 
-    result
+    Ok(())
 } 
