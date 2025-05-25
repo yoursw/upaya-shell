@@ -1,0 +1,19 @@
+[package]
+name = "upaya-demo"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Example plugin for Upaya Shell"
+
+[[bin]]
+name = "upaya-demo"
+path = "src/main.rs"
+
+[dependencies]
+upaya-core = { path = "../upaya-core" }
+upaya-plugin = { path = "../upaya-plugin" }
+upaya-tui = { path = "../upaya-tui" }
+thiserror.workspace = true
+anyhow.workspace = true 
