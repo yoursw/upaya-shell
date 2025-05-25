@@ -81,4 +81,4 @@ async fn run_app<B: ratatui::backend::Backend>(
             }
         }
     }
-} 
+}

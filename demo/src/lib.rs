@@ -1,5 +1,5 @@
 //! Example plugin for Upaya Shell
-//! 
+//!
 //! This crate provides an example plugin implementation.
 
 use upaya_core::{Result, UpayaPlugin, PluginMetadata, PluginPermissions};
@@ -44,4 +44,4 @@ impl UpayaPlugin for ExamplePlugin {
     fn cleanup(&mut self) -> Result<()> {
         Ok(())
     }
-} 
+}

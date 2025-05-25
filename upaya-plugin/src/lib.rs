@@ -1,5 +1,5 @@
 //! Plugin interface implementation for Upaya Shell
-//! 
+//!
 //! This crate provides the implementation of plugin loading and execution.
 
 use std::path::PathBuf;
@@ -44,4 +44,4 @@ impl PluginLoader for DefaultPluginLoader {
         // TODO: Implement plugin unloading
         Ok(())
     }
-} 
+}

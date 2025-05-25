@@ -62,4 +62,4 @@ async fn main() -> Result<()> {
     terminal.show_cursor()?;
 
     Ok(())
-} 
+}

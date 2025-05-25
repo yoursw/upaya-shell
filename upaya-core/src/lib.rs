@@ -1,5 +1,5 @@
 //! Core functionality for Upaya Shell
-//! 
+//!
 //! This crate provides the core interfaces and types for the Upaya Shell system.
 
 use std::path::PathBuf;
@@ -83,4 +83,4 @@ pub trait PluginLoader: Send + Sync {
 
     /// Unload a plugin
     fn unload_plugin(&self, name: &str) -> Result<()>;
-} 
+}

@@ -159,4 +159,4 @@ fn render_debug_console(f: &mut Frame, app: &App, area: Rect) {
         .block(Block::default().title("Debug Console").borders(Borders::ALL))
         .style(Style::default().fg(Color::Gray));
     f.render_widget(debug, area);
-} 
+}

@@ -23,7 +23,7 @@ pub fn handle_event(event: Event, app: &mut App) -> Result<()> {
                             let plugin_info = app.plugins.get(idx).map(|(metadata, plugin)| {
                                 (metadata.name.clone(), plugin.clone())
                             });
-                            
+
                             // Then use the info
                             if let Some((name, plugin)) = plugin_info {
                                 app.add_debug(format!("Executing plugin: {}", name));
@@ -59,4 +59,4 @@ pub fn handle_event(event: Event, app: &mut App) -> Result<()> {
         }
     }
     Ok(())
-} 
+}

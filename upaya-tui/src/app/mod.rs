@@ -53,4 +53,4 @@ impl App {
     pub fn clear_plugin_output(&mut self) {
         self.plugin_output.clear();
     }
-} 
+}
