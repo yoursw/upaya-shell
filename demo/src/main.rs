@@ -31,7 +31,7 @@ async fn main() -> Result<()> {
     // Initialize plugin loader
     let _loader = DefaultPluginLoader::new();
     let example_plugin = ExamplePlugin::new();
-    app.add_message("Example plugin loaded".to_string());
+    app.add_debug("Example plugin loaded".to_string());
     app.update_plugins(vec![(example_plugin.metadata(), Arc::new(example_plugin))]);
 
     // Run the application
